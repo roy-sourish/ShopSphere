@@ -1,7 +1,9 @@
 package com.shopsphere.user.service;
 
 import com.shopsphere.user.domain.User;
+import com.shopsphere.user.exception.DuplicateUserException;
 import com.shopsphere.user.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -16,11 +18,10 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    @Transactional
     public User createUser(String email, String rawPassword){
-        boolean exists = userRepository.findByEmail(email).isPresent();
-
-        if(exists){
-            throw new IllegalStateException("User with email already exists");
+        if(userRepository.findByEmail(email).isPresent()){
+            throw new DuplicateUserException(email);
         }
 
         // Hash password before saving

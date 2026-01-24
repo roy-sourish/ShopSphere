@@ -1,6 +1,9 @@
 package com.shopsphere.common.error;
 
+import com.shopsphere.common.exception.OptimisticConflictException;
 import com.shopsphere.user.exception.DuplicateUserException;
+import com.shopsphere.user.exception.UserNotFoundException;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -36,7 +39,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(){
         ErrorResponse response = new ErrorResponse(
                 "CONCURRENT_MODIFICATION",
-                "The resource was modified by another request. Please retry.",
+                "The resource was modified by another request. Reload and retry.",
                 null
         );
 
@@ -51,5 +54,27 @@ public class GlobalExceptionHandler {
                 null
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException ex){
+        ErrorResponse response = new ErrorResponse(
+                "USER_NOT_FOUND",
+                ex.getMessage(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex){
+        ErrorResponse response = new ErrorResponse(
+                "VALIDATION_FAILED",
+                "Request parameter validation failed",
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 }

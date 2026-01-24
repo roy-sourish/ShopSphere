@@ -45,4 +45,20 @@ public class User {
     public Instant getCreatedAt() {
         return createdAt;
     }
+
+    // Domain-controlled updates
+
+    public void changeEmail(String newEmail) {
+        if(newEmail == null || newEmail.isBlank()){
+            throw new IllegalArgumentException("Email cannot be blank");
+        }
+        this.email = newEmail;
+    }
+
+    public void changePassword(String hashedPassword) {
+        if(hashedPassword == null || hashedPassword.isBlank()){
+            throw new IllegalArgumentException("Email cannot be blank");
+        }
+        this.password = hashedPassword;
+    }
 }

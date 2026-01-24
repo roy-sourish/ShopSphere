@@ -2,16 +2,18 @@ package com.shopsphere.user.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-public class CreateUserRequest {
-    @NotBlank(message = "Email must not be empty")
+public class UpdateUserRequest {
     @Email(message = "Email must be a valid email address")
     private String email;
 
-    @NotBlank(message = "Password must not be empty")
     @Size(min = 8, message = "Password must be at least 8 characters long")
     private String password;
+
+    public UpdateUserRequest() {
+    }
 
     public String getEmail() {
         return email;

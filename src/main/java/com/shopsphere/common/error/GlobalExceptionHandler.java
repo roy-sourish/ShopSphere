@@ -1,6 +1,8 @@
 package com.shopsphere.common.error;
 
 import com.shopsphere.common.exception.OptimisticConflictException;
+import com.shopsphere.product.exception.DuplicateProductException;
+import com.shopsphere.product.exception.ProductNotFoundException;
 import com.shopsphere.user.exception.DuplicateUserException;
 import com.shopsphere.user.exception.UserNotFoundException;
 import jakarta.validation.ConstraintViolationException;
@@ -46,6 +48,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex){
+        ErrorResponse response = new ErrorResponse(
+                "VALIDATION_FAILED",
+                "Request parameter validation failed",
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /*
+     USER EXCEPTIONS
+     --------------------------------------------------------------------------------------
+    */
     @ExceptionHandler(DuplicateUserException.class)
     public ResponseEntity<ErrorResponse> handleDuplicateUser(DuplicateUserException ex){
         ErrorResponse response = new ErrorResponse(
@@ -67,14 +84,29 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
-    @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex){
+    /*
+     PRODUCT EXCEPTIONS
+     --------------------------------------------------------------------------------------
+    */
+
+    @ExceptionHandler(DuplicateProductException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateProduct(DuplicateProductException ex){
         ErrorResponse response = new ErrorResponse(
-                "VALIDATION_FAILED",
-                "Request parameter validation failed",
+                "DUPLICATE_PRODUCT",
+                ex.getMessage(),
+                null
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    @ExceptionHandler(ProductNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleProductNotFound(ProductNotFoundException ex){
+        ErrorResponse response = new ErrorResponse(
+                "PRODUCT_NOT_FOUND",
+                ex.getMessage(),
                 null
         );
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 }

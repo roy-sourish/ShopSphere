@@ -12,6 +12,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,6 +34,16 @@ public class GlobalExceptionHandler {
                 "VALIDATION_FAILED",
                 "Request validation failed",
                 fieldErrors
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex){
+        ErrorResponse response = new ErrorResponse(
+                "INVALID_PATH_VARIABLE",
+                "Request validation failed",
+                null
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }

@@ -11,6 +11,8 @@ import jakarta.validation.Valid;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class ProductService {
     private final ProductRepository productRepository;
@@ -54,5 +56,30 @@ public class ProductService {
         // Hibernate dirty checking will flush changes automatically
 
         return product;
+    }
+
+    @Transactional
+    public void reduceStock(Long productId, int quantity){
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException(productId));
+
+        product.decreaseStock(quantity);
+    }
+
+    @Transactional
+    public Product getProductById(Long id){
+        return productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException(id));
+    }
+
+    @Transactional
+    public Product getProductBySku(String sku){
+        return productRepository.findBySku(sku)
+                .orElseThrow(() -> new ProductNotFoundException(sku));
+    }
+
+    @Transactional
+    public List<Product> getAllProducts(){
+        return productRepository.findAll();
     }
 }

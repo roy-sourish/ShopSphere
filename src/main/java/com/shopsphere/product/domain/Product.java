@@ -90,4 +90,16 @@ public class Product {
 
         this.stockQuantity = newStock;
     }
+
+    public void decreaseStock(int quantity){
+        if(quantity <= 0){
+            throw new IllegalArgumentException("Quantity must be positive");
+        }
+
+        if(this.stockQuantity < quantity){
+            throw new IllegalStateException("Insufficient stock");
+        }
+
+        this.stockQuantity -= quantity;
+    }
 }

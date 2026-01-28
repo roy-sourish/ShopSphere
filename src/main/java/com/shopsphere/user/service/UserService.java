@@ -6,10 +6,11 @@ import com.shopsphere.user.dto.UpdateUserRequest;
 import com.shopsphere.user.exception.DuplicateUserException;
 import com.shopsphere.user.exception.UserNotFoundException;
 import com.shopsphere.user.repository.UserRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService {
@@ -60,14 +61,15 @@ public class UserService {
             user.changePassword(newHashedPassword);
         }
 
-        // Step 3: Save + handle uniqueness conflict
-//        try{
-//            return userRepository.save(user);
-//        } catch (DataIntegrityViolationException ex) {
-//            throw new DuplicateUserException(request.getEmail());
-//        }
+        // Step 3: Force DB constraint + version check now
+        try{
+            userRepository.flush();
+        } catch (DataIntegrityViolationException ex) {
+            throw new DuplicateUserException(request.getEmail());
+        } catch (ObjectOptimisticLockingFailureException ex){
+            throw new OptimisticConflictException("User",userId);
+        }
 
-        // Step 3: Return entity (dirty checking will flush update)
         return user;
     }
 
@@ -76,7 +78,7 @@ public class UserService {
      *
      * @param userId (Long) user id
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public User getUserById(Long userId) {
         // findById returns Optional<User>
         return userRepository.findById(userId)
@@ -88,9 +90,9 @@ public class UserService {
      *
      * @param email (String) email
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public User getUserByEmail(String email) {
-        return userRepository.findByEmail(email)
+        return userRepository.findByEmail(email.trim().toLowerCase())
                 .orElseThrow(() -> new UserNotFoundException(email));
     }
 }

@@ -34,6 +34,7 @@ public class ProductController {
     }
 
     @PatchMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
     public ProductResponse updateProduct(
             @PathVariable @Min(1) Long id,
             @Valid @RequestBody UpdateProductRequest request
@@ -43,7 +44,7 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    public ProductResponse getProductById(@PathVariable Long id) {
+    public ProductResponse getProductById(@PathVariable @Min(1) Long id) {
         Product product = productService.getProductById(id);
         return ProductResponse.from(product);
     }

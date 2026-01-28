@@ -1,15 +1,17 @@
 package com.shopsphere.product.service;
 
+import com.shopsphere.common.exception.OptimisticConflictException;
 import com.shopsphere.product.domain.Product;
 import com.shopsphere.product.dto.CreateProductRequest;
 import com.shopsphere.product.dto.UpdateProductRequest;
 import com.shopsphere.product.exception.DuplicateProductException;
 import com.shopsphere.product.exception.ProductNotFoundException;
 import com.shopsphere.product.repository.ProductRepository;
-import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -52,9 +54,14 @@ public class ProductService {
             product.changeStock(request.getStockQuantity());
         }
 
-        // Step 3: No save() needed
-        // Hibernate dirty checking will flush changes automatically
-
+        // Step 3: Force flush for constraint + version conflict detection
+        try{
+            productRepository.flush();
+        } catch (DataIntegrityViolationException ex) {
+            throw new DuplicateProductException(product.getSku());
+        } catch (ObjectOptimisticLockingFailureException ex){
+            throw new OptimisticConflictException("Product", productId);
+        }
         return product;
     }
 
@@ -64,21 +71,28 @@ public class ProductService {
                 .orElseThrow(() -> new ProductNotFoundException(productId));
 
         product.decreaseStock(quantity);
+
+        // Force optimistic locking check immediately
+        try {
+            productRepository.flush();
+        }catch (ObjectOptimisticLockingFailureException ex){
+            throw new OptimisticConflictException("Product", productId);
+        }
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public Product getProductById(Long id){
         return productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(id));
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public Product getProductBySku(String sku){
-        return productRepository.findBySku(sku)
+        return productRepository.findBySku(sku.trim().toUpperCase())
                 .orElseThrow(() -> new ProductNotFoundException(sku));
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<Product> getAllProducts(){
         return productRepository.findAll();
     }

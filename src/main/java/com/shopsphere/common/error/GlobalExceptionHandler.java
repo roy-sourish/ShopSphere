@@ -42,7 +42,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex){
         ErrorResponse response = new ErrorResponse(
                 "INVALID_PATH_VARIABLE",
-                "Request validation failed",
+                "Invalid path variable type",
                 null
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -58,6 +58,19 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
+
+    @ExceptionHandler(OptimisticConflictException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticConflict(OptimisticConflictException ex) {
+
+        ErrorResponse response = new ErrorResponse(
+                "CONCURRENT_MODIFICATION",
+                ex.getMessage(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex){

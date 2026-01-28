@@ -28,6 +28,11 @@ public class Product {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @PrePersist
+    void onCreate(){
+        this.createdAt = Instant.now();
+    }
+
     @Version
     private Long version;
 
@@ -36,11 +41,27 @@ public class Product {
     }
 
     public Product(String sku, String name, BigDecimal price, Integer stockQuantity) {
-        this.sku = sku;
+
+        if (sku == null || sku.isBlank()) {
+            throw new IllegalArgumentException("SKU cannot be blank");
+        }
+
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Product name cannot be blank");
+        }
+
+        if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Price must be positive");
+        }
+
+        if (stockQuantity == null || stockQuantity < 0) {
+            throw new IllegalArgumentException("Stock cannot be negative");
+        }
+
+        this.sku = sku.trim().toUpperCase();
         this.name = name;
         this.price = price;
         this.stockQuantity = stockQuantity;
-        this.createdAt = Instant.now();
     }
 
     public Long getId() {
@@ -67,10 +88,6 @@ public class Product {
         return createdAt;
     }
 
-    public Long getVersion() {
-        return version;
-    }
-
     public void changeName(String newName) {
         if (newName == null || newName.isBlank()) {
             throw new IllegalArgumentException("Product name cannot be blank");
@@ -90,6 +107,15 @@ public class Product {
 
         this.stockQuantity = newStock;
     }
+
+    public void increaseStock(int quantity) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be positive");
+        }
+
+        this.stockQuantity += quantity;
+    }
+
 
     public void decreaseStock(int quantity){
         if(quantity <= 0){

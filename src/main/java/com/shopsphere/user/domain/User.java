@@ -21,6 +21,11 @@ public class User {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @PrePersist
+    void onCreate(){
+        this.createdAt = Instant.now();
+    }
+
     @Version
     private Long version;
 
@@ -29,9 +34,8 @@ public class User {
     }
 
     public User(String email, String password){
-        this.email = email;
+        this.email = email.trim().toLowerCase();
         this.password = password;
-        this.createdAt = Instant.now();
     }
 
     public Long getId() {
@@ -52,7 +56,7 @@ public class User {
         if(newEmail == null || newEmail.isBlank()){
             throw new IllegalArgumentException("Email cannot be blank");
         }
-        this.email = newEmail;
+        this.email = newEmail.trim().toLowerCase();
     }
 
     public void changePassword(String hashedPassword) {

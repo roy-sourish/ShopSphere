@@ -1,6 +1,9 @@
 package com.shopsphere.common.error;
 
 import com.shopsphere.common.exception.OptimisticConflictException;
+import com.shopsphere.inventory.exception.InsufficientStockException;
+import com.shopsphere.inventory.exception.InvalidReservationStateException;
+import com.shopsphere.inventory.exception.ReservationNotFoundException;
 import com.shopsphere.product.exception.DuplicateProductException;
 import com.shopsphere.product.exception.ProductNotFoundException;
 import com.shopsphere.user.exception.DuplicateUserException;
@@ -132,5 +135,43 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+     /*
+     Inventory EXCEPTIONS
+     --------------------------------------------------------------------------------------
+    */
+
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<ErrorResponse> handleInsufficientStock(InsufficientStockException ex){
+        ErrorResponse response = new ErrorResponse(
+                "INSUFFICIENT_STOCK",
+                ex.getMessage(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    @ExceptionHandler(ReservationNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleReservationNotFound(ReservationNotFoundException ex){
+        ErrorResponse response = new ErrorResponse(
+                "RESERVATION_NOT_FOUND",
+                ex.getMessage(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    @ExceptionHandler(InvalidReservationStateException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidReservationState(InvalidReservationStateException ex){
+        ErrorResponse response = new ErrorResponse(
+                "INVALID_RESERVATION_STATE",
+                ex.getMessage(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 }

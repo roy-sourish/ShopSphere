@@ -1,5 +1,7 @@
 package com.shopsphere.common.error;
 
+import com.shopsphere.cart.exception.CartItemNotFoundException;
+import com.shopsphere.cart.exception.CartNotFoundException;
 import com.shopsphere.common.exception.OptimisticConflictException;
 import com.shopsphere.inventory.exception.InsufficientStockException;
 import com.shopsphere.inventory.exception.InvalidReservationStateException;
@@ -173,5 +175,32 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+      /*
+     Cart EXCEPTIONS
+     --------------------------------------------------------------------------------------
+    */
+
+    @ExceptionHandler(CartNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleCartNotFound(CartNotFoundException ex){
+        ErrorResponse response = new ErrorResponse(
+                "CART_NOT_FOUND",
+                 ex.getMessage(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    @ExceptionHandler(CartItemNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleCartItemNotFound(CartItemNotFoundException ex){
+        ErrorResponse response = new ErrorResponse(
+                "CART_ITEM_NOT_FOUND",
+                 ex.getMessage(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 }

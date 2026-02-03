@@ -6,6 +6,8 @@ import com.shopsphere.common.exception.OptimisticConflictException;
 import com.shopsphere.inventory.exception.InsufficientStockException;
 import com.shopsphere.inventory.exception.InvalidReservationStateException;
 import com.shopsphere.inventory.exception.ReservationNotFoundException;
+import com.shopsphere.order.exception.EmptyCartException;
+import com.shopsphere.order.exception.OrderAccessDeniedException;
 import com.shopsphere.product.exception.DuplicateProductException;
 import com.shopsphere.product.exception.ProductNotFoundException;
 import com.shopsphere.user.exception.DuplicateUserException;
@@ -15,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -203,4 +206,73 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
+
+    /*
+ ORDER EXCEPTIONS
+ --------------------------------------------------------------------------------------
+*/
+
+    @ExceptionHandler(EmptyCartException.class)
+    public ResponseEntity<ErrorResponse> handleEmptyCart(EmptyCartException ex) {
+
+        ErrorResponse response = new ErrorResponse(
+                "EMPTY_CART",
+                ex.getMessage(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(OrderAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleOrderAccessDenied(OrderAccessDeniedException ex) {
+
+        ErrorResponse response = new ErrorResponse(
+                "ORDER_NOT_FOUND",
+                ex.getMessage(),
+                null
+        );
+
+        // Production security pattern:
+        // return 404 instead of 403 so we don't leak existence
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
+
+        ErrorResponse response = new ErrorResponse(
+                "INVALID_STATE",
+                ex.getMessage(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ErrorResponse> handleMissingHeader(MissingRequestHeaderException ex) {
+
+        ErrorResponse response = new ErrorResponse(
+                "MISSING_HEADER",
+                "Required header is missing: " + ex.getHeaderName(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
+
+        ErrorResponse response = new ErrorResponse(
+                "INTERNAL_ERROR",
+                "An unexpected error occurred",
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+
 }

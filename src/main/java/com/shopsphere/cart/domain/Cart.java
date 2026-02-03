@@ -48,6 +48,9 @@ public class Cart {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Version
+    private Long version;
+
     @PrePersist
     void onCreate() {
         this.createdAt = Instant.now();
@@ -109,5 +112,14 @@ public class Cart {
     public void removeItem(CartItem item) {
         ensureActive();
         this.items.remove(item);
+    }
+
+    public void checkout(){
+        ensureActive();
+        this.status = CartStatus.CHECKED_OUT;
+    }
+
+    public boolean isEmpty(){
+        return this.items.isEmpty();
     }
 }

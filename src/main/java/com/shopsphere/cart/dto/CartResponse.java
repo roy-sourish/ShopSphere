@@ -25,10 +25,6 @@ public class CartResponse {
         );
     }
 
-    public static CartResponse empty(){
-        return new CartResponse(null, "ACTIVE", List.of());
-    }
-
     public Long getCartId(){
         return cartId;
     }

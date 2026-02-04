@@ -4,5 +4,5 @@ CREATE TABLE products (
     price               NUMERIC(19, 2) NOT NULL CHECK ( price > 0 ),
     stock_quantity      INT NOT NULL CHECK ( stock_quantity >= 0 ),
     created_at          TIMESTAMP NOT NULL,
-    version             BIGINT NOT NULL
+    version             BIGINT NOT NULL DEFAULT 0
 );

@@ -7,6 +7,7 @@ import com.shopsphere.cart.dto.UpdateCartItemQuantityRequest;
 import com.shopsphere.cart.service.CartService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,63 +20,67 @@ public class CartController {
     }
 
     /**
-     * View Cart -
-     * GET /api/v1/cart?userId=1
+     * View active cart (returns empty if none exists).
      */
     @GetMapping
-    public CartResponse viewCart(@RequestParam @Min(1) Long userId){
-        Cart cart = cartService.getActiveCart(userId);
-
-        if(cart == null){
-            return CartResponse.empty();
-        }
-
-        return CartResponse.from(cart);
+    public ResponseEntity<CartResponse> viewCart(@RequestParam Long userId) {
+        return cartService.getActiveCart(userId)
+                .map(cart -> ResponseEntity.ok(CartResponse.from(cart)))
+                .orElse(ResponseEntity.noContent().build());
     }
 
     /**
-     * Add item -
-     * POST /api/v1/cart/items
+     * Add item to cart.
      */
     @PostMapping("/items")
-    public CartResponse addItem(
-            @RequestParam @Min(1) Long userId,
+    public ResponseEntity<CartResponse> addItem(
+            @RequestParam Long userId,
             @Valid @RequestBody AddCartItemRequest request
-    ){
-        Cart cart = cartService.addItem(
+    ) {
+
+        var cart = cartService.addItem(
                 userId,
                 request.getProductId(),
                 request.getQuantity()
         );
 
-        return CartResponse.from(cart);
+        return ResponseEntity.ok(CartResponse.from(cart));
     }
 
     /**
-     * Update quantity -
-     * PATCH /api/v1/cart/items/{itemId}
+     * Update quantity (0 removes item).
      */
-    @PatchMapping("/items/{itemId}")
-    public CartResponse updateQuantity(
-            @RequestParam @Min(1) Long userId,
-            @PathVariable @Min(1) Long itemId,
+    @PatchMapping("/items/{productId}")
+    public ResponseEntity<Void> updateQuantity(
+            @RequestParam Long userId,
+            @PathVariable Long productId,
             @Valid @RequestBody UpdateCartItemQuantityRequest request
-    ){
-        Cart cart = cartService.updateItemQuantity(userId, itemId, request.getQuantity());
+    ) {
 
-        return CartResponse.from(cart);
+        cartService.updateQuantity(userId, productId, request.getQuantity());
+        return ResponseEntity.noContent().build();
     }
 
     /**
-     * Remove item -
-     * DELETE /api/v1/cart/items/{itemId}
+     * Remove item completely.
      */
-    @DeleteMapping("/items/{itemId}")
-    public CartResponse removeItem(
-            @RequestParam @Min(1) Long userId,
-            @PathVariable @Min(1) Long itemId
-    ){
-        Cart cart = cartService.removeItem(userId, itemId);
-        return CartResponse.from(cart);
+    @DeleteMapping("/items/{productId}")
+    public ResponseEntity<Void> removeItem(
+            @RequestParam Long userId,
+            @PathVariable Long productId
+    ) {
+
+        cartService.removeItem(userId, productId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Checkout closes cart.
+     */
+    @PostMapping("/checkout")
+    public ResponseEntity<Void> checkout(@RequestParam Long userId) {
+
+        cartService.checkout(userId);
+        return ResponseEntity.noContent().build();
     }
 }

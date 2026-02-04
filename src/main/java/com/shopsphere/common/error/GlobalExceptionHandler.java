@@ -3,11 +3,6 @@ package com.shopsphere.common.error;
 import com.shopsphere.cart.exception.CartItemNotFoundException;
 import com.shopsphere.cart.exception.CartNotFoundException;
 import com.shopsphere.common.exception.OptimisticConflictException;
-import com.shopsphere.inventory.exception.InsufficientStockException;
-import com.shopsphere.inventory.exception.InvalidReservationStateException;
-import com.shopsphere.inventory.exception.ReservationNotFoundException;
-import com.shopsphere.order.exception.EmptyCartException;
-import com.shopsphere.order.exception.OrderAccessDeniedException;
 import com.shopsphere.product.exception.DuplicateProductException;
 import com.shopsphere.product.exception.ProductNotFoundException;
 import com.shopsphere.user.exception.DuplicateUserException;
@@ -91,6 +86,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
+
     /*
      USER EXCEPTIONS
      --------------------------------------------------------------------------------------
@@ -142,44 +138,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
-     /*
-     Inventory EXCEPTIONS
-     --------------------------------------------------------------------------------------
-    */
-
-    @ExceptionHandler(InsufficientStockException.class)
-    public ResponseEntity<ErrorResponse> handleInsufficientStock(InsufficientStockException ex){
-        ErrorResponse response = new ErrorResponse(
-                "INSUFFICIENT_STOCK",
-                ex.getMessage(),
-                null
-        );
-
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
-    }
-
-    @ExceptionHandler(ReservationNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleReservationNotFound(ReservationNotFoundException ex){
-        ErrorResponse response = new ErrorResponse(
-                "RESERVATION_NOT_FOUND",
-                ex.getMessage(),
-                null
-        );
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-    }
-
-    @ExceptionHandler(InvalidReservationStateException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidReservationState(InvalidReservationStateException ex){
-        ErrorResponse response = new ErrorResponse(
-                "INVALID_RESERVATION_STATE",
-                ex.getMessage(),
-                null
-        );
-
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
-    }
-
       /*
      Cart EXCEPTIONS
      --------------------------------------------------------------------------------------
@@ -207,36 +165,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
-    /*
- ORDER EXCEPTIONS
- --------------------------------------------------------------------------------------
-*/
-
-    @ExceptionHandler(EmptyCartException.class)
-    public ResponseEntity<ErrorResponse> handleEmptyCart(EmptyCartException ex) {
-
-        ErrorResponse response = new ErrorResponse(
-                "EMPTY_CART",
-                ex.getMessage(),
-                null
-        );
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-    }
-
-    @ExceptionHandler(OrderAccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleOrderAccessDenied(OrderAccessDeniedException ex) {
-
-        ErrorResponse response = new ErrorResponse(
-                "ORDER_NOT_FOUND",
-                ex.getMessage(),
-                null
-        );
-
-        // Production security pattern:
-        // return 404 instead of 403 so we don't leak existence
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-    }
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
@@ -273,6 +201,4 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
-
-
 }

@@ -11,6 +11,13 @@ public class AddCartItemRequest {
     @Min(value = 1, message = "Quantity must be at least 1")
     private Integer quantity;
 
+    protected AddCartItemRequest() {}
+
+    public AddCartItemRequest(Long productId, Integer quantity) {
+        this.productId = productId;
+        this.quantity = quantity;
+    }
+
     public Long getProductId(){
         return productId;
     }

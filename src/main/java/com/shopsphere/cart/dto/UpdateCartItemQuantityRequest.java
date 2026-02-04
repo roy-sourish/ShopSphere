@@ -9,6 +9,12 @@ public class UpdateCartItemQuantityRequest {
     @Min(value = 0, message = "Quantity cannot be negative")
     private Integer quantity;
 
+    protected UpdateCartItemQuantityRequest() {}
+
+    public UpdateCartItemQuantityRequest(Integer quantity) {
+        this.quantity = quantity;
+    }
+
     public Integer getQuantity(){
         return quantity;
     }

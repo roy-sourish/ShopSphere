@@ -16,7 +16,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
+@Transactional
 public class CartService {
     private final CartRepository cartRepository;
     private final UserRepository userRepository;
@@ -28,97 +31,84 @@ public class CartService {
         this.productRepository = productRepository;
     }
 
-    @Transactional
-    public Cart getOrCreateActiveCart(Long userId) {
-        // Step 1: Ensure user exists
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(userId));
-
-        // Step 2: Try to find ACTIVE cart
-        return cartRepository.findByUserIdAndStatus(userId, CartStatus.ACTIVE)
-                .orElseGet(() -> {
-                    // Step 3: Lazy create new cart
-                    try {
-                        Cart newCart = new Cart(user);
-                        return cartRepository.save(newCart);
-                    } catch (DataIntegrityViolationException ex){
-                        // Another request created cart first -> retry fetch
-                        return cartRepository.findByUserIdAndStatus(userId, CartStatus.ACTIVE)
-                                .orElseThrow(() -> ex);
-                    }
-                });
+    /**
+     * View active cart (returns empty if none exists).
+     */
+    @Transactional(readOnly = true)
+    public Optional<Cart> getActiveCart(Long userId) {
+        return cartRepository.findCartWithItems(userId, CartStatus.ACTIVE);
     }
 
-    @Transactional(readOnly = true)
-    public Cart getExistingActiveCart(Long userId){
-        if(!userRepository.existsById(userId)){
-            throw new UserNotFoundException(userId);
-        }
+    /**
+     * Add item to cart (merge quantity if exists).
+     */
+    public Cart addItem(Long userId, Long productId, int quantity) {
+        Cart cart = getOrCreateActiveCart(userId);
 
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException(productId));
+
+        cart.addItem(product, quantity);
+
+        return cart;
+    }
+
+    /**
+     * Update quantity.
+     * quantity == 0 means remove.
+     */
+    public void updateQuantity(Long userId, Long productId, int quantity) {
+        Cart cart = getActiveCartOrThrow(userId);
+
+        cart.updateItemQuantity(productId, quantity);
+    }
+
+    /**
+     * Remove item fully.
+     */
+    public void removeItem(Long userId, Long productId) {
+        Cart cart = getActiveCartOrThrow(userId);
+        cart.removeItem(productId);
+    }
+
+    /**
+     * Checkout closes cart.
+     */
+    public void checkout(Long userId) {
+        Cart cart = getActiveCartOrThrow(userId);
+        cart.checkout();
+    }
+
+    private Cart getActiveCartOrThrow(Long userId) {
         return cartRepository.findByUserIdAndStatus(userId, CartStatus.ACTIVE)
                 .orElseThrow(() -> new CartNotFoundException(userId));
     }
 
-    @Transactional
-    public Cart addItem(Long userId, Long productId, int quantity) {
-        if (quantity <= 0) {
-            throw new IllegalArgumentException("Quantity must be positive");
-        }
+    /**
+     * Lazy create ACTIVE cart if missing.
+     * Handles race conditions using UNIQUE(user_id).
+     */
+    public Cart getOrCreateActiveCart(Long userId) {
 
-        // Step 1: Load product
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ProductNotFoundException(productId));
-
-        // Step 2: Get or create cart
-        Cart cart = getOrCreateActiveCart(userId);
-
-        // Step 3: Delegate to domain logic
-        cart.addItem(product, quantity);
-
-        // Step 4: Return cart(dirty checking persists changes)
-        return cart;
-    }
-
-    @Transactional
-    public Cart updateItemQuantity(Long userId, Long cartItemId, int newQuantity) {
-        Cart cart = getExistingActiveCart(userId);
-
-        // Find item inside cart
-        CartItem item = cart.getItems().stream()
-                .filter(i -> i.getId().equals(cartItemId))
-                .findFirst()
-                .orElseThrow(() -> new CartItemNotFoundException(cartItemId));
-
-        // quantity == 0 means remove item
-        if (newQuantity == 0) {
-            cart.removeItem(item);
-            return cart;
-        } else if (newQuantity < 0) {
-            throw new IllegalArgumentException("Quantity cannot be negative");
-        }
-
-        // Update item quantity
-        item.changeQuantity(newQuantity);
-        return cart;
-    }
-
-    @Transactional
-    public Cart removeItem(Long userId, Long cartItemId) {
-        Cart cart = getExistingActiveCart(userId);
-
-        CartItem item = cart.getItems().stream()
-                .filter(i -> i.getId().equals(cartItemId))
-                .findFirst()
-                .orElseThrow(() -> new CartItemNotFoundException(cartItemId));
-
-        cart.removeItem(item);
-
-        return cart;
-    }
-
-    @Transactional(readOnly = true)
-    public Cart getActiveCart(Long userId) {
         return cartRepository.findByUserIdAndStatus(userId, CartStatus.ACTIVE)
-                .orElse(null);
+                .orElseGet(() -> createCartSafely(userId));
+    }
+
+    private Cart createCartSafely(Long userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        try {
+            Cart cart = new Cart(user);
+            return cartRepository.save(cart);
+
+        } catch (DataIntegrityViolationException ex) {
+            // Another request created the cart concurrently.
+            return cartRepository.findByUserIdAndStatus(userId, CartStatus.ACTIVE)
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Cart creation race condition failed unexpectedly"
+                    ));
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.shopsphere.cart.domain;
 
+import com.shopsphere.cart.exception.CartItemNotFoundException;
 import com.shopsphere.product.domain.Product;
 import com.shopsphere.user.domain.User;
 import jakarta.persistence.*;
@@ -51,6 +52,15 @@ public class Cart {
     @Version
     private Long version;
 
+    protected Cart() {
+
+    }
+
+    public Cart(User user) {
+        this.user = user;
+        this.status = CartStatus.ACTIVE;
+    }
+
     @PrePersist
     void onCreate() {
         this.createdAt = Instant.now();
@@ -60,15 +70,6 @@ public class Cart {
     @PreUpdate
     void onUpdate() {
         this.updatedAt = Instant.now();
-    }
-
-    protected Cart() {
-
-    }
-
-    public Cart(User user) {
-        this.user = user;
-        this.status = CartStatus.ACTIVE;
     }
 
     public Long getId() {
@@ -89,12 +90,25 @@ public class Cart {
         }
     }
 
+    private CartItem getItemOrThrow(Long productId) {
+        return items.stream()
+                .filter(i -> i.getProduct().getId().equals(productId))
+                .findFirst()
+                .orElseThrow(() ->
+                        new CartItemNotFoundException(productId)
+                );
+    }
+
+    /**
+     * Add product to cart.
+     * If already exists → merge quantity.
+     */
     public void addItem(Product product, int quantity) {
-        if(quantity <= 0){
+        ensureActive();
+
+        if (quantity <= 0) {
             throw new IllegalArgumentException("Quantity must be positive");
         }
-
-        ensureActive();
 
         // Check if item already exists
         for (CartItem item : items) {
@@ -109,17 +123,56 @@ public class Cart {
         this.items.add(newItem);
     }
 
-    public void removeItem(CartItem item) {
+    /**
+     * Update quantity.
+     * quantity == 0 → remove item.
+     */
+    public void updateItemQuantity(Long productId, int newQuantity) {
         ensureActive();
-        this.items.remove(item);
+
+        if (newQuantity < 0) {
+            throw new IllegalArgumentException("Quantity cannot be negative");
+        }
+
+        if (newQuantity == 0) {
+            removeItem(productId);
+            return;
+        }
+
+        CartItem item = getItemOrThrow(productId);
+        item.changeQuantity(newQuantity);
     }
 
-    public void checkout(){
+    /**
+     * Remove item completely.
+     */
+    public void removeItem(Long productId) {
         ensureActive();
+        boolean removed = items.removeIf(
+                i -> i.getProduct().getId().equals(productId)
+        );
+
+        if (!removed) {
+            throw new IllegalStateException(
+                    "Cannot remove: product not in cart (productId=" + productId + ")"
+            );
+        }
+    }
+
+    /**
+     * Checkout locks cart forever.
+     */
+    public void checkout() {
+        ensureActive();
+
+        if (items.isEmpty()) {
+            throw new IllegalStateException("Cannot checkout empty cart");
+        }
+
         this.status = CartStatus.CHECKED_OUT;
     }
 
-    public boolean isEmpty(){
+    public boolean isEmpty() {
         return this.items.isEmpty();
     }
 }

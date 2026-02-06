@@ -50,13 +50,13 @@ class CartServiceIntegrationTest {
     @BeforeEach
     void setup() {
         user = userRepository.save(new User(
-                "roy2@test.com",
+                "cartService@test.com",
                 "password"
         ));
 
         product = productRepository.save(new Product(
-                "iPhone 15",
-                "SKU-IPHONE",
+                "SKU-CART-SRV",
+                "CART-SRV-NAME",
                 BigDecimal.valueOf(79000),
                 10
         ));

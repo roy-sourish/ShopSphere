@@ -94,18 +94,18 @@ public class CartService {
         try {
             return getOrCreateActiveCartTx(userId);
         } catch (DataIntegrityViolationException ex) {
-            // Another request created the cart concurrently.
-            return cartRepository.findByUserIdAndStatus(userId, CartStatus.ACTIVE)
-                    .orElseThrow(() -> new IllegalStateException(
-                            "Cart creation race condition failed unexpectedly"
-                    ));
+            return loadActiveCartNewTx(userId);
         }
     }
 
-    /**
-     * Lazy create ACTIVE cart if missing.
-     * Handles race conditions using UNIQUE(user_id).
-     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    protected Cart loadActiveCartNewTx(Long userId) {
+        return cartRepository.findByUserIdAndStatus(userId, CartStatus.ACTIVE)
+                .orElseThrow(() ->
+                        new IllegalStateException("Cart creation race failed unexpectedly"));
+    }
+
+
     @Transactional
     protected Cart getOrCreateActiveCartTx(Long userId) {
         return cartRepository.findByUserIdAndStatus(userId, CartStatus.ACTIVE)

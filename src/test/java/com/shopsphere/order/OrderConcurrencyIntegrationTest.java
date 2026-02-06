@@ -56,7 +56,7 @@ public class OrderConcurrencyIntegrationTest {
 
     private User createUser() {
         return userRepository.save(
-                new User("test@example.com", "password")
+                new User("orderServiceConcur@example.com", "password")
         );
     }
 
@@ -76,7 +76,7 @@ public class OrderConcurrencyIntegrationTest {
     void createOrder_concurrentRequests_createsOnlyOnePendingOrder() throws Exception {
         // Arrange
         User user = createUser();
-        Product product = createProduct("SKU-1", BigDecimal.valueOf(1000));
+        Product product = createProduct("SKU-CONCUR-ORDER", BigDecimal.valueOf(1000));
 
         Cart cart = cartService.addItem(user.getId(), product.getId(), 1);
         cartRepository.saveAndFlush(cart);

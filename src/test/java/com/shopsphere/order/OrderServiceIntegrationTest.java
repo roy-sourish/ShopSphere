@@ -55,13 +55,13 @@ public class OrderServiceIntegrationTest {
 
     private User createUser() {
         return userRepository.save(
-                new User("test@example.com", "password")
+                new User("orderService@example.com", "password")
         );
     }
 
     private Product createProduct(String sku, BigDecimal price) {
         return productRepository.save(
-                new Product(sku, "Test Product", price, 100)
+                new Product(sku, "Order Service Test Product", price, 100)
         );
     }
 
@@ -74,7 +74,7 @@ public class OrderServiceIntegrationTest {
     @Test
     void createOrder_fromActiveCart_createsPendingOrder() {
         User user = createUser();
-        Product product = createProduct("SKU-1", new BigDecimal("100.00"));
+        Product product = createProduct("SKU-ORDER-SERVICE-1", new BigDecimal("100.00"));
         Cart cart = createCartWithItem(user, product, 2);
 
         Order order = orderService.createPendingOrder(user.getId(), "USD");
@@ -98,7 +98,7 @@ public class OrderServiceIntegrationTest {
     @Test
     void createOrder_whenPendingExists_returnsSameOrder() {
         User user = createUser();
-        Product product = createProduct("SKU-1", new BigDecimal("150.00"));
+        Product product = createProduct("SKU-ORDER-SERVICE-2", new BigDecimal("150.00"));
         createCartWithItem(user, product, 2);
 
         // First call creates the order

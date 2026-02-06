@@ -5,6 +5,7 @@ import com.shopsphere.cart.domain.CartStatus;
 import com.shopsphere.cart.exception.CartNotFoundException;
 import com.shopsphere.cart.repository.CartRepository;
 import com.shopsphere.cart.service.CartService;
+import com.shopsphere.order.repository.OrderRepository;
 import com.shopsphere.product.domain.Product;
 import com.shopsphere.product.repository.ProductRepository;
 import com.shopsphere.user.domain.User;
@@ -13,9 +14,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -30,17 +36,21 @@ class CartServiceIntegrationTest {
     private UserRepository userRepository;
 
     @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
     private ProductRepository productRepository;
+
+    @Autowired
+    private CartRepository cartRepository;
 
     private User user;
     private Product product;
-    @Autowired
-    private CartRepository cartRepository;
 
     @BeforeEach
     void setup() {
         user = userRepository.save(new User(
-                "roy@test.com",
+                "roy2@test.com",
                 "password"
         ));
 
@@ -178,4 +188,5 @@ class CartServiceIntegrationTest {
                 cartService.updateQuantity(user.getId(), product.getId(), 2)
         ).isInstanceOf(CartNotFoundException.class);
     }
+
 }

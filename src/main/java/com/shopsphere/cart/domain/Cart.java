@@ -84,6 +84,10 @@ public class Cart {
         return items;
     }
 
+    public User getUser() {
+        return user;
+    }
+
     private void ensureActive() {
         if (this.status != CartStatus.ACTIVE) {
             throw new IllegalStateException("Cart is not active");

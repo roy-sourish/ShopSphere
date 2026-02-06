@@ -14,18 +14,21 @@ import com.shopsphere.user.exception.UserNotFoundException;
 import com.shopsphere.user.repository.UserRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
 @Service
-@Transactional
 public class CartService {
     private final CartRepository cartRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
 
-    public CartService(CartRepository cartRepository, UserRepository userRepository, ProductRepository productRepository) {
+    public CartService(CartRepository cartRepository,
+                       UserRepository userRepository,
+                       ProductRepository productRepository
+    ) {
         this.cartRepository = cartRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
@@ -39,9 +42,8 @@ public class CartService {
         return cartRepository.findCartWithItems(userId, CartStatus.ACTIVE);
     }
 
-    /**
-     * Add item to cart (merge quantity if exists).
-     */
+
+    @Transactional
     public Cart addItem(Long userId, Long productId, int quantity) {
         Cart cart = getOrCreateActiveCart(userId);
 
@@ -57,6 +59,7 @@ public class CartService {
      * Update quantity.
      * quantity == 0 means remove.
      */
+    @Transactional
     public void updateQuantity(Long userId, Long productId, int quantity) {
         Cart cart = getActiveCartOrThrow(userId);
 
@@ -66,6 +69,7 @@ public class CartService {
     /**
      * Remove item fully.
      */
+    @Transactional
     public void removeItem(Long userId, Long productId) {
         Cart cart = getActiveCartOrThrow(userId);
         cart.removeItem(productId);
@@ -74,35 +78,21 @@ public class CartService {
     /**
      * Checkout closes cart.
      */
+    @Transactional
     public void checkout(Long userId) {
         Cart cart = getActiveCartOrThrow(userId);
         cart.checkout();
     }
 
-    private Cart getActiveCartOrThrow(Long userId) {
+    @Transactional
+    public Cart getActiveCartOrThrow(Long userId) {
         return cartRepository.findByUserIdAndStatus(userId, CartStatus.ACTIVE)
                 .orElseThrow(() -> new CartNotFoundException(userId));
     }
 
-    /**
-     * Lazy create ACTIVE cart if missing.
-     * Handles race conditions using UNIQUE(user_id).
-     */
     public Cart getOrCreateActiveCart(Long userId) {
-
-        return cartRepository.findByUserIdAndStatus(userId, CartStatus.ACTIVE)
-                .orElseGet(() -> createCartSafely(userId));
-    }
-
-    private Cart createCartSafely(Long userId) {
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(userId));
-
         try {
-            Cart cart = new Cart(user);
-            return cartRepository.save(cart);
-
+            return getOrCreateActiveCartTx(userId);
         } catch (DataIntegrityViolationException ex) {
             // Another request created the cart concurrently.
             return cartRepository.findByUserIdAndStatus(userId, CartStatus.ACTIVE)
@@ -110,5 +100,23 @@ public class CartService {
                             "Cart creation race condition failed unexpectedly"
                     ));
         }
+    }
+
+    /**
+     * Lazy create ACTIVE cart if missing.
+     * Handles race conditions using UNIQUE(user_id).
+     */
+    @Transactional
+    protected Cart getOrCreateActiveCartTx(Long userId) {
+        return cartRepository.findByUserIdAndStatus(userId, CartStatus.ACTIVE)
+                .orElseGet(() -> createCartSafely(userId));
+    }
+
+    private Cart createCartSafely(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        Cart cart = new Cart(user);
+        return cartRepository.saveAndFlush(cart);
     }
 }

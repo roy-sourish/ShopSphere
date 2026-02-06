@@ -3,6 +3,9 @@ package com.shopsphere.common.error;
 import com.shopsphere.cart.exception.CartItemNotFoundException;
 import com.shopsphere.cart.exception.CartNotFoundException;
 import com.shopsphere.common.exception.OptimisticConflictException;
+import com.shopsphere.order.exception.EmptyCartException;
+import com.shopsphere.order.exception.NoActiveCartException;
+import com.shopsphere.order.exception.OrderNotFoundException;
 import com.shopsphere.product.exception.DuplicateProductException;
 import com.shopsphere.product.exception.ProductNotFoundException;
 import com.shopsphere.user.exception.DuplicateUserException;
@@ -192,7 +195,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
-
+        ex.printStackTrace();
         ErrorResponse response = new ErrorResponse(
                 "INTERNAL_ERROR",
                 "An unexpected error occurred",
@@ -201,4 +204,43 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
+
+    /*
+ ORDER EXCEPTIONS
+ --------------------------------------------------------------------------------------
+*/
+
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleOrderNotFound(OrderNotFoundException ex){
+        ErrorResponse response = new ErrorResponse(
+                "ORDER_NOT_FOUND",
+                ex.getMessage(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    @ExceptionHandler(NoActiveCartException.class)
+    public ResponseEntity<ErrorResponse> handleNoActiveCart(NoActiveCartException ex){
+        ErrorResponse response = new ErrorResponse(
+                "NO_ACTIVE_CART",
+                ex.getMessage(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    @ExceptionHandler(EmptyCartException.class)
+    public ResponseEntity<ErrorResponse> handleEmptyCart(EmptyCartException ex){
+        ErrorResponse response = new ErrorResponse(
+                "EMPTY_CART",
+                ex.getMessage(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
 }

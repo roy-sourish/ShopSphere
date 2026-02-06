@@ -8,6 +8,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/orders")
 public class OrderController {
@@ -27,10 +29,13 @@ public class OrderController {
 
     // View Confirmed Order
     @GetMapping("/confirmed")
-    public ResponseEntity<OrderResponse> getConfirmedOrder(@RequestParam Long userId) {
-        return orderService.getConfirmedOrder(userId)
-                .map(order -> ResponseEntity.ok(OrderResponse.from(order)))
-                .orElse(ResponseEntity.ok(OrderResponse.empty()));
+    public ResponseEntity<List<OrderResponse>> getConfirmedOrder(@RequestParam Long userId) {
+        return ResponseEntity.ok(
+                orderService.getConfirmedOrders(userId)
+                        .stream()
+                        .map(OrderResponse::from)
+                        .toList()
+        );
     }
 
     // Create Pending Order

@@ -4,9 +4,21 @@ import com.shopsphere.order.domain.Order;
 import com.shopsphere.order.domain.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+
+import java.util.List;
 import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
+    @Query("""
+                SELECT DISTINCT o
+                FROM Order o
+                LEFT JOIN FETCH o.items
+                WHERE o.user.id = :userId
+                  AND o.status = :status
+                ORDER BY o.createdAt DESC
+            """)
+    List<Order> findConfirmedOrdersWithItems(Long userId, OrderStatus status);
+
     Optional<Order> findByUserIdAndStatus(Long userId, OrderStatus status);
 
     @Query("""

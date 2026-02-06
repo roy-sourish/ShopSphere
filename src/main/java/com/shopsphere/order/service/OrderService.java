@@ -15,6 +15,7 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -40,19 +41,27 @@ public class OrderService {
      * Get CONFIRMED order
      */
     @Transactional(readOnly = true)
-    public Optional<Order> getConfirmedOrder(Long userId) {
-        return orderRepository.findOrderWithItems(userId, OrderStatus.CONFIRMED);
+    public List<Order> getConfirmedOrders(Long userId) {
+        return orderRepository.findConfirmedOrdersWithItems(userId, OrderStatus.CONFIRMED);
     }
 
 
     public Order createPendingOrder(Long userId, String currencyCode){
         try {
-            return createPendingOrderTx(userId, currencyCode);
+            Order order = createPendingOrderTx(userId, currencyCode);
+            return loadPendingOrderWithItems(order.getId(), userId);
         } catch (DataIntegrityViolationException ex) {
             return orderRepository.findByUserIdAndStatus(userId, OrderStatus.PENDING)
                     .orElseThrow(() -> new OptimisticConflictException("Order", userId));
         }
     }
+
+    @Transactional(readOnly = true)
+    protected Order loadPendingOrderWithItems(Long orderId, Long userId) {
+        return orderRepository.findByIdAndUserIdWithItems(orderId, userId)
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
+    }
+
 
     /**
      * Create Cart -> Order Snapshot

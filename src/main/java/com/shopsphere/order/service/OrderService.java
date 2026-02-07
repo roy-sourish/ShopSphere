@@ -8,7 +8,7 @@ import com.shopsphere.inventory.service.InventoryReservationService;
 import com.shopsphere.order.domain.Order;
 import com.shopsphere.order.domain.OrderStatus;
 import com.shopsphere.order.exception.EmptyCartException;
-import com.shopsphere.order.exception.NoCheckedOutCartException;
+import com.shopsphere.order.exception.NoActiveCartException;
 import com.shopsphere.order.exception.OrderNotFoundException;
 import com.shopsphere.order.repository.OrderRepository;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -74,17 +74,24 @@ public class OrderService {
     protected Order createPendingOrderTx(Long userId, String currencyCode) {
         // Step 1: Enforce single pending order
         return orderRepository.findByUserIdAndStatus(userId, OrderStatus.PENDING)
+                .map(order -> {
+                    reservationService.assertActiveReservationsForOrder(order.getId());
+                    return order;
+                })
                 .orElseGet(() -> createFromCart(userId, currencyCode));
     }
 
     private Order createFromCart(Long userId, String currencyCode) {
-        // Step 2: Load active cart with items
-        Cart cart = cartRepository.findCartWithItems(userId, CartStatus.CHECKED_OUT)
-                .orElseThrow(() -> new NoCheckedOutCartException(userId));
+        // Step 2: Load cart with items
+        Cart cart = cartRepository.findCartWithItems(userId, CartStatus.ACTIVE)
+                .orElseThrow(() -> new NoActiveCartException(userId));
 
         if (cart.isEmpty()) {
             throw new EmptyCartException();
         }
+
+        reservationService.reserveCartItems(cart);
+        cart.checkout();
 
         // Step 3: Snapshot cart
         Order order = Order.fromCart(cart, currencyCode);

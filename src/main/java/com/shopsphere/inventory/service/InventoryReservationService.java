@@ -51,6 +51,21 @@ public class InventoryReservationService {
         return reservationRepository.saveAll(reservations);
     }
 
+    @Transactional(readOnly = true)
+    public void assertActiveReservationsForOrder(Long orderId) {
+        List<InventoryReservation> reservations = reservationRepository.findByOrderId(orderId);
+        if (reservations.isEmpty()) {
+            throw new ReservationNotFoundException("order", orderId);
+        }
+
+        Instant now = Instant.now();
+        for (InventoryReservation reservation : reservations) {
+            if (reservation.getStatus() != ReservationStatus.ACTIVE || reservation.isExpired(now)) {
+                throw new ReservationExpiredException(reservation.getId());
+            }
+        }
+    }
+
     @Transactional(noRollbackFor = ReservationExpiredException.class)
     public void attachOrderToReservations(Long cartId, Long orderId) {
         List<InventoryReservation> reservations = reservationRepository.findByCartId(cartId);

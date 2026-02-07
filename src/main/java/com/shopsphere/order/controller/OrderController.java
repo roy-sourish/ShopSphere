@@ -38,16 +38,6 @@ public class OrderController {
         );
     }
 
-    // Create Pending Order
-    @PostMapping
-    public ResponseEntity<OrderResponse> createOrder(
-            @RequestParam Long userId,
-            @Valid @RequestBody CreateOrderRequest request
-    ) {
-        Order order = orderService.createPendingOrder(userId, request.getCurrencyCode());
-        return ResponseEntity.ok(OrderResponse.from(order));
-    }
-
     @PostMapping("/{orderId}/confirm")
     public ResponseEntity<OrderResponse> confirmOrder(
             @PathVariable Long orderId,

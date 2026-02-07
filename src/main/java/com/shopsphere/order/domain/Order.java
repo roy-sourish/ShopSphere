@@ -55,7 +55,7 @@ public class Order {
 
     public Order(User user, String currencyCode) {
         this.user = user;
-        this.currencyCode = currencyCode;
+        this.currencyCode = validateCurrency(currencyCode);
         this.totalAmount = BigDecimal.ZERO;
         this.status = OrderStatus.PENDING;
     }

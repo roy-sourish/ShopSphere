@@ -136,6 +136,21 @@ public class InventoryReservationService {
         }
     }
 
+    @Transactional
+    public void releaseReservationsForCart(Long cartId) {
+        List<InventoryReservation> reservations = reservationRepository.findByCartId(cartId);
+        if (reservations.isEmpty()) {
+            return;
+        }
+
+        for (InventoryReservation reservation : reservations) {
+            if (reservation.getStatus() == ReservationStatus.ACTIVE) {
+                releaseReservationStock(reservation);
+                reservation.markCancelled();
+            }
+        }
+    }
+
     private void releaseReservationStock(InventoryReservation reservation) {
         Product product = productRepository.findById(reservation.getProductId())
                 .orElseThrow(() -> new IllegalStateException(

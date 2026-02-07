@@ -10,7 +10,7 @@ import java.util.Objects;
 @Entity
 @Table(name = "order_items",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"order_id", "productId"})
+                @UniqueConstraint(columnNames = {"order_id", "product_id"})
         }
 )
 public class OrderItem {

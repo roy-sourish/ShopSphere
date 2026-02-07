@@ -96,7 +96,14 @@ public class OrderService {
         // Step 3: Snapshot cart
         Order order = Order.fromCart(cart, currencyCode);
         Order savedOrder = orderRepository.saveAndFlush(order);
-        reservationService.attachOrderToReservations(cart.getId(), savedOrder.getId());
+        try {
+            reservationService.attachOrderToReservations(cart.getId(), savedOrder.getId());
+        } catch (RuntimeException ex) {
+            reservationService.releaseReservationsForCart(cart.getId());
+            orderRepository.delete(savedOrder);
+            cart.reopen();
+            throw ex;
+        }
         return savedOrder;
 
     }

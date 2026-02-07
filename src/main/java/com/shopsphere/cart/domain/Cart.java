@@ -157,9 +157,7 @@ public class Cart {
         );
 
         if (!removed) {
-            throw new IllegalStateException(
-                    "Cannot remove: product not in cart (productId=" + productId + ")"
-            );
+            throw new CartItemNotFoundException(productId);
         }
     }
 
@@ -174,6 +172,10 @@ public class Cart {
         }
 
         this.status = CartStatus.CHECKED_OUT;
+    }
+
+    public void reopen() {
+        this.status = CartStatus.ACTIVE;
     }
 
     public boolean isEmpty() {

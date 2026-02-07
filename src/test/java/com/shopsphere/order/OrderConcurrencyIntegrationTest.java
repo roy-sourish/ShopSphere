@@ -1,6 +1,5 @@
 package com.shopsphere.order;
 
-import com.shopsphere.cart.domain.Cart;
 import com.shopsphere.cart.repository.CartRepository;
 import com.shopsphere.cart.service.CartService;
 import com.shopsphere.order.domain.Order;
@@ -66,20 +65,14 @@ public class OrderConcurrencyIntegrationTest {
         );
     }
 
-    private Cart createCartWithItem(User user, Product product, int qty) {
-        Cart cart = new Cart(user);
-        cart.addItem(product, qty);
-        return cartRepository.save(cart);
-    }
-
     @Test
     void createOrder_concurrentRequests_createsOnlyOnePendingOrder() throws Exception {
         // Arrange
         User user = createUser();
         Product product = createProduct("SKU-CONCUR-ORDER", BigDecimal.valueOf(1000));
 
-        Cart cart = cartService.addItem(user.getId(), product.getId(), 1);
-        cartRepository.saveAndFlush(cart);
+        cartService.addItem(user.getId(), product.getId(), 1);
+        cartService.checkout(user.getId());
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
 
@@ -108,5 +101,3 @@ public class OrderConcurrencyIntegrationTest {
         assertThat(orders).hasSize(1);
     }
 }
-
-

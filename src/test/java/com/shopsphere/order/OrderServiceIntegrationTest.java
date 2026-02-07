@@ -8,29 +8,22 @@ import com.shopsphere.order.domain.Order;
 import com.shopsphere.order.domain.OrderItem;
 import com.shopsphere.order.domain.OrderStatus;
 import com.shopsphere.order.exception.EmptyCartException;
-import com.shopsphere.order.exception.NoActiveCartException;
+import com.shopsphere.order.exception.NoCheckedOutCartException;
 import com.shopsphere.order.repository.OrderRepository;
 import com.shopsphere.order.service.OrderService;
 import com.shopsphere.product.domain.Product;
 import com.shopsphere.product.repository.ProductRepository;
 import com.shopsphere.user.domain.User;
 import com.shopsphere.user.repository.UserRepository;
-import jakarta.transaction.Transactional;
-import org.antlr.v4.runtime.misc.LogManager;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.*;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
 @SpringBootTest
 @Transactional
 public class OrderServiceIntegrationTest {
@@ -65,17 +58,12 @@ public class OrderServiceIntegrationTest {
         );
     }
 
-    private Cart createCartWithItem(User user, Product product, int qty) {
-        Cart cart = new Cart(user);
-        cart.addItem(product, qty);
-        return cartRepository.save(cart);
-    }
-
     @Test
-    void createOrder_fromActiveCart_createsPendingOrder() {
+    void createOrder_fromCheckedOutCart_createsPendingOrder() {
         User user = createUser();
         Product product = createProduct("SKU-ORDER-SERVICE-1", new BigDecimal("100.00"));
-        Cart cart = createCartWithItem(user, product, 2);
+        cartService.addItem(user.getId(), product.getId(), 2);
+        cartService.checkout(user.getId());
 
         Order order = orderService.createPendingOrder(user.getId(), "USD");
 
@@ -89,7 +77,7 @@ public class OrderServiceIntegrationTest {
 
         // cart unchanged
         Cart reloadedCart = cartRepository
-                .findCartWithItems(user.getId(), CartStatus.ACTIVE)
+                .findCartWithItems(user.getId(), CartStatus.CHECKED_OUT)
                 .orElseThrow();
 
         assertThat(reloadedCart.getItems()).hasSize(1);
@@ -99,7 +87,8 @@ public class OrderServiceIntegrationTest {
     void createOrder_whenPendingExists_returnsSameOrder() {
         User user = createUser();
         Product product = createProduct("SKU-ORDER-SERVICE-2", new BigDecimal("150.00"));
-        createCartWithItem(user, product, 2);
+        cartService.addItem(user.getId(), product.getId(), 2);
+        cartService.checkout(user.getId());
 
         // First call creates the order
         Order firstOrder = orderService.createPendingOrder(user.getId(), "USD");
@@ -120,22 +109,23 @@ public class OrderServiceIntegrationTest {
     }
 
     @Test
-    void createOrder_withoutActiveCart_throwsNoActiveCartException() {
+    void createOrder_withoutCheckedOutCart_throwsNoCheckedOutCartException() {
         User user = createUser();
 
         assertThatThrownBy(() ->
                 orderService.createPendingOrder(user.getId(), "USD")
         )
-                .isInstanceOf(NoActiveCartException.class)
-                .hasMessageContaining("No active cart found");
+                .isInstanceOf(NoCheckedOutCartException.class)
+                .hasMessageContaining("No checked out cart found");
     }
 
     @Test
     void createOrder_withEmptyCart_throwsEmptyCartException() {
         User user = createUser();
 
-        // Create ACTIVE cart but do not add any items
+        // Create CHECKED_OUT cart but do not add any items
         Cart cart = cartService.getOrCreateActiveCart(user.getId());
+        ReflectionTestUtils.setField(cart, "status", CartStatus.CHECKED_OUT);
         cartRepository.save(cart);
 
         assertThatThrownBy(() ->

@@ -51,7 +51,7 @@ public class InventoryReservationService {
         return reservationRepository.saveAll(reservations);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = ReservationExpiredException.class)
     public void attachOrderToReservations(Long cartId, Long orderId) {
         List<InventoryReservation> reservations = reservationRepository.findByCartId(cartId);
         if (reservations.isEmpty()) {
@@ -74,7 +74,7 @@ public class InventoryReservationService {
         }
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = ReservationExpiredException.class)
     public void consumeReservations(Long orderId) {
         List<InventoryReservation> reservations = reservationRepository
                 .findByOrderIdAndStatus(orderId, ReservationStatus.ACTIVE);

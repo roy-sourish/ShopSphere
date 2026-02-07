@@ -4,14 +4,14 @@ import com.shopsphere.cart.domain.Cart;
 import com.shopsphere.cart.domain.CartStatus;
 import com.shopsphere.cart.repository.CartRepository;
 import com.shopsphere.common.exception.OptimisticConflictException;
+import com.shopsphere.inventory.service.InventoryReservationService;
 import com.shopsphere.order.domain.Order;
 import com.shopsphere.order.domain.OrderStatus;
 import com.shopsphere.order.exception.EmptyCartException;
-import com.shopsphere.order.exception.NoActiveCartException;
+import com.shopsphere.order.exception.NoCheckedOutCartException;
 import com.shopsphere.order.exception.OrderNotFoundException;
 import com.shopsphere.order.repository.OrderRepository;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,10 +23,14 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final CartRepository cartRepository;
+    private final InventoryReservationService reservationService;
 
-    public OrderService(OrderRepository orderRepository, CartRepository cartRepository) {
+    public OrderService(OrderRepository orderRepository,
+                        CartRepository cartRepository,
+                        InventoryReservationService reservationService) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
+        this.reservationService = reservationService;
     }
 
     /**
@@ -75,8 +79,8 @@ public class OrderService {
 
     private Order createFromCart(Long userId, String currencyCode) {
         // Step 2: Load active cart with items
-        Cart cart = cartRepository.findCartWithItems(userId, CartStatus.ACTIVE)
-                .orElseThrow(() -> new NoActiveCartException(userId));
+        Cart cart = cartRepository.findCartWithItems(userId, CartStatus.CHECKED_OUT)
+                .orElseThrow(() -> new NoCheckedOutCartException(userId));
 
         if (cart.isEmpty()) {
             throw new EmptyCartException();
@@ -84,7 +88,9 @@ public class OrderService {
 
         // Step 3: Snapshot cart
         Order order = Order.fromCart(cart, currencyCode);
-        return orderRepository.saveAndFlush(order);
+        Order savedOrder = orderRepository.saveAndFlush(order);
+        reservationService.attachOrderToReservations(cart.getId(), savedOrder.getId());
+        return savedOrder;
 
     }
 
@@ -93,6 +99,7 @@ public class OrderService {
         Order order = orderRepository.findByIdAndUserIdWithItems(orderId, userId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
 
+        reservationService.consumeReservations(orderId);
         order.confirm();
         return order;
     }

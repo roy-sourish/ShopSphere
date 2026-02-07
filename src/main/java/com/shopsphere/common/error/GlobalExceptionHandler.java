@@ -3,8 +3,11 @@ package com.shopsphere.common.error;
 import com.shopsphere.cart.exception.CartItemNotFoundException;
 import com.shopsphere.cart.exception.CartNotFoundException;
 import com.shopsphere.common.exception.OptimisticConflictException;
+import com.shopsphere.inventory.exception.ReservationExpiredException;
+import com.shopsphere.inventory.exception.ReservationNotFoundException;
 import com.shopsphere.order.exception.EmptyCartException;
 import com.shopsphere.order.exception.NoActiveCartException;
+import com.shopsphere.order.exception.NoCheckedOutCartException;
 import com.shopsphere.order.exception.OrderNotFoundException;
 import com.shopsphere.product.exception.DuplicateProductException;
 import com.shopsphere.product.exception.ProductNotFoundException;
@@ -232,6 +235,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
+    @ExceptionHandler(NoCheckedOutCartException.class)
+    public ResponseEntity<ErrorResponse> handleNoCheckedOutCart(NoCheckedOutCartException ex) {
+        ErrorResponse response = new ErrorResponse(
+                "NO_CHECKED_OUT_CART",
+                ex.getMessage(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
     @ExceptionHandler(EmptyCartException.class)
     public ResponseEntity<ErrorResponse> handleEmptyCart(EmptyCartException ex){
         ErrorResponse response = new ErrorResponse(
@@ -243,4 +257,25 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
+    @ExceptionHandler(ReservationNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleReservationNotFound(ReservationNotFoundException ex) {
+        ErrorResponse response = new ErrorResponse(
+                "RESERVATION_NOT_FOUND",
+                ex.getMessage(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    @ExceptionHandler(ReservationExpiredException.class)
+    public ResponseEntity<ErrorResponse> handleReservationExpired(ReservationExpiredException ex) {
+        ErrorResponse response = new ErrorResponse(
+                "RESERVATION_EXPIRED",
+                ex.getMessage(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
 }

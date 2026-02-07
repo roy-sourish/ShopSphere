@@ -1,11 +1,10 @@
 package com.shopsphere.cart.service;
 
 import com.shopsphere.cart.domain.Cart;
-import com.shopsphere.cart.domain.CartItem;
 import com.shopsphere.cart.domain.CartStatus;
-import com.shopsphere.cart.exception.CartItemNotFoundException;
 import com.shopsphere.cart.exception.CartNotFoundException;
 import com.shopsphere.cart.repository.CartRepository;
+import com.shopsphere.inventory.service.InventoryReservationService;
 import com.shopsphere.product.domain.Product;
 import com.shopsphere.product.exception.ProductNotFoundException;
 import com.shopsphere.product.repository.ProductRepository;
@@ -24,14 +23,17 @@ public class CartService {
     private final CartRepository cartRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
+    private final InventoryReservationService reservationService;
 
     public CartService(CartRepository cartRepository,
                        UserRepository userRepository,
-                       ProductRepository productRepository
+                       ProductRepository productRepository,
+                       InventoryReservationService reservationService
     ) {
         this.cartRepository = cartRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
+        this.reservationService = reservationService;
     }
 
     /**
@@ -80,7 +82,9 @@ public class CartService {
      */
     @Transactional
     public void checkout(Long userId) {
-        Cart cart = getActiveCartOrThrow(userId);
+        Cart cart = cartRepository.findCartWithItems(userId, CartStatus.ACTIVE)
+                .orElseThrow(() -> new CartNotFoundException(userId));
+        reservationService.reserveCartItems(cart);
         cart.checkout();
     }
 

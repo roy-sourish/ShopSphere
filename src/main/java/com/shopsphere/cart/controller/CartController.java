@@ -5,6 +5,9 @@ import com.shopsphere.cart.dto.AddCartItemRequest;
 import com.shopsphere.cart.dto.CartResponse;
 import com.shopsphere.cart.dto.UpdateCartItemQuantityRequest;
 import com.shopsphere.cart.service.CartService;
+import com.shopsphere.order.dto.CreateOrderRequest;
+import com.shopsphere.order.dto.OrderResponse;
+import com.shopsphere.order.service.OrderService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
@@ -14,9 +17,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/cart")
 public class CartController {
     private final CartService cartService;
+    private final OrderService orderService;
 
-    public CartController(CartService cartService) {
+    public CartController(CartService cartService, OrderService orderService) {
         this.cartService = cartService;
+        this.orderService = orderService;
     }
 
     /**
@@ -78,9 +83,12 @@ public class CartController {
      * Checkout closes cart.
      */
     @PostMapping("/checkout")
-    public ResponseEntity<Void> checkout(@RequestParam Long userId) {
+    public ResponseEntity<OrderResponse> checkout(
+            @RequestParam Long userId,
+            @Valid @RequestBody CreateOrderRequest request
+    ) {
 
-        cartService.checkout(userId);
-        return ResponseEntity.noContent().build();
+        var order = orderService.createPendingOrder(userId, request.getCurrencyCode());
+        return ResponseEntity.ok(OrderResponse.from(order));
     }
 }

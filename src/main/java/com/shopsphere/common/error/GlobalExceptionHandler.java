@@ -7,7 +7,6 @@ import com.shopsphere.inventory.exception.ReservationExpiredException;
 import com.shopsphere.inventory.exception.ReservationNotFoundException;
 import com.shopsphere.order.exception.EmptyCartException;
 import com.shopsphere.order.exception.NoActiveCartException;
-import com.shopsphere.order.exception.NoCheckedOutCartException;
 import com.shopsphere.order.exception.OrderNotFoundException;
 import com.shopsphere.product.exception.DuplicateProductException;
 import com.shopsphere.product.exception.ProductNotFoundException;
@@ -228,17 +227,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleNoActiveCart(NoActiveCartException ex){
         ErrorResponse response = new ErrorResponse(
                 "NO_ACTIVE_CART",
-                ex.getMessage(),
-                null
-        );
-
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
-    }
-
-    @ExceptionHandler(NoCheckedOutCartException.class)
-    public ResponseEntity<ErrorResponse> handleNoCheckedOutCart(NoCheckedOutCartException ex) {
-        ErrorResponse response = new ErrorResponse(
-                "NO_CHECKED_OUT_CART",
                 ex.getMessage(),
                 null
         );
